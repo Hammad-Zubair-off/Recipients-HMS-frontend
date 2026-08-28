@@ -13,6 +13,22 @@
 
 A modern, secure, and feature-rich clinic management system built with React 19, Firebase, and Tailwind CSS. Streamline your healthcare operations with comprehensive patient management, appointment scheduling, prescription management, billing systems, and role-based access control.
 
+## 🔧 Authentication Fixes
+
+The authentication flow was updated to fix accounts that could be created successfully but could not reach their dashboard after signing in.
+
+- Firebase email addresses are normalized by trimming whitespace and converting them to lowercase.
+- Signup creates the staff profile, sends the verification email, and signs the user out before redirecting to login.
+- Login no longer depends on a Firestore profile read or write to complete Firebase authentication and dashboard routing.
+- Doctor accounts route to `/doctor`; receptionist accounts route to `/receptionist`.
+- Staff roles are normalized consistently, including existing profiles containing uppercase letters or extra spaces.
+- Login falls back to the selected role when Firestore profile access is temporarily denied.
+- Invalid role selections and failed login attempts clear the Firebase session.
+
+### Firestore Permissions
+
+Firebase Authentication and Firestore have separate permissions. If the dashboard displays permission errors or missing data, publish the project rules from [firestore.rules](firestore.rules) in the Firebase Console. Firestore permissions must allow authenticated users to read the collections required by their dashboard.
+
 ## 🛠️ Tech Stack
 
 Our clinic management system is built with cutting-edge technologies to ensure performance, security, and scalability:

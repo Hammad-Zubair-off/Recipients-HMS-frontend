@@ -6,7 +6,8 @@ import {
   signInUser,
   resetUserPassword,
   resendUserVerificationEmail,
-  fetchUserRoleFromFirestore
+  fetchUserRoleFromFirestore,
+  normalizeRole
 } from '../utils/authUtils'
 
 const AuthContext = createContext()
@@ -21,8 +22,12 @@ export function AuthProvider({ children }) {
     return await createUserWithRole(email, password, fullName, role)
   }
 
-  async function login(email, password) {
-    return await signInUser(email, password)
+  async function login(email, password, selectedRole) {
+    const user = await signInUser(email, password, selectedRole)
+    const role = normalizeRole(await fetchUserRole(user.uid)) || normalizeRole(selectedRole)
+    setCurrentUser(user)
+    setUserRole(role)
+    return { user, role }
   }
 
   async function logout() {
@@ -56,7 +61,9 @@ export function AuthProvider({ children }) {
       if (user) {
         setCurrentUser(user)
         const role = await fetchUserRole(user.uid)
-        setUserRole(role)
+        if (role) {
+          setUserRole(normalizeRole(role))
+        }
       } else {
         setCurrentUser(null)
         setUserRole(null)

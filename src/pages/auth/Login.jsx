@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaHospital, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaArrowRight, FaStar, FaShieldHalved, FaUserDoctor, FaUserTie, FaDatabase } from 'react-icons/fa6'
 import { useAuth } from '../../hooks/useAuth'
-import { fetchUserRoleFromFirestore } from '../../utils/authUtils'
 import { seedDatabase } from '../../utils/seedData'
 import toast from 'react-hot-toast'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, currentUser, userRole: contextRole } = useAuth()
+  const { login, logout, currentUser, userRole: contextRole } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [selectedRole, setSelectedRole] = useState('')
   const [email, setEmail] = useState('')
@@ -16,17 +15,15 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
+  const [pendingRole, setPendingRole] = useState(null)
 
-  // Auto-redirect if already authenticated
   useEffect(() => {
-    if (currentUser && contextRole) {
-      if (contextRole === 'doctor') {
-        navigate('/doctor', { replace: true })
-      } else if (contextRole === 'receptionist') {
-        navigate('/receptionist', { replace: true })
-      }
+    const role = contextRole?.trim().toLowerCase()
+
+    if (currentUser && role && (!pendingRole || pendingRole === role)) {
+      navigate(role === 'doctor' ? '/doctor' : '/receptionist', { replace: true })
     }
-  }, [currentUser, contextRole, navigate])
+  }, [currentUser, contextRole, navigate, pendingRole])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,26 +36,29 @@ export default function Login() {
     setError('')
 
     try {
-      const user = await login(email, password)
-      const userRole = await fetchUserRoleFromFirestore(user.uid)
+      const { role: userRole } = await login(email, password, selectedRole)
 
-      if (userRole === selectedRole) {
-        if (selectedRole === 'doctor') {
-          navigate('/doctor')
-        } else if (selectedRole === 'receptionist') {
-          navigate('/receptionist')
-        }
-      } else if (userRole) {
-        setError(`Selected role does not match your account role. Your account is registered as: ${userRole}`)
+      const normalizedRole = userRole?.trim().toLowerCase()
+
+      if (normalizedRole === selectedRole) {
+        setPendingRole(normalizedRole)
+        setIsLoading(false)
+      } else if (normalizedRole) {
+        setError(`Selected role does not match your account role. Your account is registered as: ${normalizedRole}`)
+        await logout()
         setIsLoading(false)
       } else {
-        navigate('/doctor')
+        await logout()
+        setError('Your account profile is incomplete. Please contact support.')
+        setIsLoading(false)
       }
     } catch (error) {
       console.error('Login error:', error)
       let errorMessage = 'Failed to sign in. Please try again.'
 
-      if (error.code === 'auth/user-not-found') {
+      if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Email or password is incorrect.'
+      } else if (error.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email address.'
       } else if (error.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password. Please try again.'
@@ -66,10 +66,15 @@ export default function Login() {
         errorMessage = 'Please enter a valid email address.'
       } else if (error.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.'
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many attempts. Please wait and try again.'
+      } else if (error.code === 'permission-denied') {
+        errorMessage = 'Your account profile could not be accessed. Please contact support.'
       } else if (error.message.includes('No document to update')) {
         errorMessage = 'Account setup incomplete. Please contact support.'
       }
 
+      await logout()
       setError(errorMessage)
       setIsLoading(false)
     }

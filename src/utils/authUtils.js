@@ -1,15 +1,21 @@
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
+  signOut,
   sendPasswordResetEmail,
   sendEmailVerification,
   updateProfile
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 
+export function normalizeRole(role) {
+  return typeof role === 'string' ? role.trim().toLowerCase() : null
+}
+
 export async function createUserWithRole(email, password, fullName, role) {
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+  const normalizedEmail = email.trim().toLowerCase()
+  const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
   const user = userCredential.user
 
   await updateProfile(user, {
@@ -22,46 +28,22 @@ export async function createUserWithRole(email, password, fullName, role) {
     uid: user.uid,
     email: user.email,
     fullName: fullName,
-    role: role,
+    role: normalizeRole(role),
     emailVerified: false,
     createdAt: new Date().toISOString(),
     lastLogin: null,
     verificationEmailSent: new Date().toISOString()
   })
 
+  await signOut(auth)
+
   return user
 }
 
-export async function signInUser(email, password) {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password)
-  const user = userCredential.user
-
-  if (user.uid) {
-    // Check if the user document exists in Firestore
-    const userDocRef = doc(db, 'staffData', user.uid)
-    const userDoc = await getDoc(userDocRef)
-    
-    if (userDoc.exists()) {
-      // Update existing document
-      await updateDoc(userDocRef, {
-        lastLogin: new Date().toISOString()
-      })
-    } else {
-      // Create new document if it doesn't exist (fallback for users created before Firestore integration)
-      await setDoc(userDocRef, {
-        uid: user.uid,
-        email: user.email,
-        fullName: user.displayName || 'Unknown',
-        role: 'doctor', // Default role - user can update this later
-        emailVerified: user.emailVerified,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        verificationEmailSent: null
-      })
-    }
-  }
-
-  return user
+export async function signInUser(email, password, selectedRole = 'doctor') {
+  const normalizedEmail = email.trim().toLowerCase()
+  const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password)
+  return userCredential.user
 }
 
 export async function resetUserPassword(email) {
@@ -76,7 +58,7 @@ export async function fetchUserRoleFromFirestore(uid) {
   try {
     const userDoc = await getDoc(doc(db, 'staffData', uid))
     if (userDoc.exists()) {
-      return userDoc.data().role
+      return normalizeRole(userDoc.data().role)
     }
     return null
   } catch (error) {
