@@ -1,4 +1,4 @@
-import { Route, Routes, Navigate } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
 import Login from './pages/auth/Login'
 import Doctor from './pages/doctor/Doctor'
@@ -36,6 +36,7 @@ import Reports from './pages/receptionist/billing/Reports'
 import PatientList from './pages/receptionist/patients/PatientList'
 import CreatePatient from './pages/receptionist/patients/CreatePatient'
 import ViewPatient from './pages/receptionist/patients/ViewPatient'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -195,7 +196,7 @@ function App() {
 
       <Route path="/forgot-password" element={<ForgotPasswordForm />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }
