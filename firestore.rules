@@ -5,7 +5,7 @@ rules_version = '2';
 //
 // Role model (matches the application, do NOT invent a new one):
 //   - Staff profile + role are stored at  staffData/{uid}
-//   - staffData/{uid}.role is either 'doctor' or 'receptionist'
+//   - staffData/{uid}.role is either 'doctor' or 11111'receptionist'
 //   - There are NO Firebase Auth custom claims; never rely on request.auth.token.role
 //
 // Access model:

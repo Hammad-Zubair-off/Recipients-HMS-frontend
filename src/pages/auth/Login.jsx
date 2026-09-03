@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Mail, Lock, ArrowRight, UserPlus } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import AuthLayout from '../../components/auth/AuthLayout'
 import RoleSelect from '../../components/auth/RoleSelect'
-import FloatingInput from '../../components/auth/FloatingInput'
+import AuthField from '../../components/auth/AuthField'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -82,12 +83,13 @@ export default function Login() {
 
   return (
     <AuthLayout
-      heroHeadline="Nothing gets lost between shifts."
+      heroHeadline="Everything in sync."
+      heroAccent="Care without chaos."
       heroSubhead="Charts, orders, and handoff notes stay in sync the moment you sign in."
     >
       <form onSubmit={handleSubmit} noValidate>
-        <h2>Sign in</h2>
-        <p className="auth-lede">Enter your details to reach your workspace.</p>
+        <h2>Welcome back</h2>
+        <p className="auth-lede">Sign in to your Fieldstone Workspace</p>
 
         <RoleSelect
           legend="I'm signing in as"
@@ -96,7 +98,7 @@ export default function Login() {
           onChange={setSelectedRole}
         />
 
-        <FloatingInput
+        <AuthField
           label="Email address"
           name="email"
           type="email"
@@ -104,9 +106,11 @@ export default function Login() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
+          icon={<Mail strokeWidth={1.9} />}
+          placeholder="you@clinic.com"
         />
 
-        <FloatingInput
+        <AuthField
           label="Password"
           name="password"
           type={showPassword ? 'text' : 'password'}
@@ -114,6 +118,8 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
+          icon={<Lock strokeWidth={1.9} />}
+          placeholder="Enter your password"
           showToggle
           toggled={showPassword}
           onToggle={() => setShowPassword(!showPassword)}
@@ -139,21 +145,23 @@ export default function Login() {
           type="submit"
           disabled={!selectedRole || !email || !password || isLoading}
           className="auth-btn-primary"
-          style={{ marginTop: error ? 14 : 0 }}
+          style={{ marginTop: error ? 16 : 4 }}
         >
           {isLoading ? (
             <>
               <span className="auth-spin" /> Signing in...
             </>
           ) : (
-            'Sign in'
+            <>
+              Sign in <ArrowRight />
+            </>
           )}
         </button>
 
         <div className="auth-divider">New to Fieldstone?</div>
 
         <Link to="/signup" className="auth-btn-secondary">
-          Create an account
+          <UserPlus /> Create an account
         </Link>
 
         <div className="auth-status">

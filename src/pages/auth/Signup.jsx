@@ -116,7 +116,8 @@ export default function Signup() {
 
   return (
     <AuthLayout
-      heroHeadline="Set up your workspace in minutes."
+      heroHeadline="Set up your workspace"
+      heroAccent="in minutes."
       heroSubhead="Bring your team onto one system for charts, scheduling, and handoffs."
     >
       <form onSubmit={handleSubmit} noValidate>

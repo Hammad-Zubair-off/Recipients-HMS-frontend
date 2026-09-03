@@ -7,13 +7,13 @@ import '../../pages/auth/auth-theme.css'
  * Presentation only.
  *
  * Props:
- *   heroHeadline / heroSubhead  strings for the hero copy
- *   children                    the form content for the right panel
+ *   heroHeadline / heroAccent / heroSubhead  strings for the hero copy
+ *   children                                 the form content for the right panel
  */
-export default function AuthLayout({ heroHeadline, heroSubhead, children }) {
+export default function AuthLayout({ heroHeadline, heroAccent, heroSubhead, children }) {
   return (
     <div className="auth-shell">
-      <HeroScene headline={heroHeadline} subhead={heroSubhead} />
+      <HeroScene headline={heroHeadline} accent={heroAccent} subhead={heroSubhead} />
 
       <div className="auth-form-panel">
         <div className="auth-topbar">
