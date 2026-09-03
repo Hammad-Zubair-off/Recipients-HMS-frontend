@@ -520,22 +520,6 @@
   text-align: center;
 }
 
-/* dev-only seed button (existing behaviour, restyled small + unobtrusive) */
-.auth-dev {
-  margin-top: 14px;
-  text-align: center;
-}
-.auth-dev button {
-  border: 0;
-  background: transparent;
-  color: var(--ink-faint);
-  font: inherit;
-  font-size: 11.5px;
-  cursor: pointer;
-  text-decoration: underline;
-}
-.auth-dev button:disabled { opacity: 0.5; cursor: default; }
-
 /* small spinner used inside buttons */
 .auth-spin {
   width: 16px;

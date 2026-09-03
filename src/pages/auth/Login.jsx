@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { seedDatabase } from '../../utils/seedData'
-import toast from 'react-hot-toast'
 import AuthLayout from '../../components/auth/AuthLayout'
 import RoleSelect from '../../components/auth/RoleSelect'
 import FloatingInput from '../../components/auth/FloatingInput'
@@ -16,7 +14,6 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isSeeding, setIsSeeding] = useState(false)
   const [pendingRole, setPendingRole] = useState(null)
   const [rememberDevice, setRememberDevice] = useState(false) // visual only
 
@@ -80,20 +77,6 @@ export default function Login() {
       await logout()
       setError(errorMessage)
       setIsLoading(false)
-    }
-  }
-
-  const handleSeedDatabase = async () => {
-    if (window.confirm('This will add example data to your database (Medicines, Appointments, Invoices). Continue?')) {
-      setIsSeeding(true)
-      const result = await seedDatabase(currentUser)
-      setIsSeeding(false)
-
-      if (result.success) {
-        toast.success(`${result.patientsCreated} patients added; ${result.appointmentsUpdated} appointments updated.`)
-      } else {
-        toast.error('Failed to seed database. Check console for details.')
-      }
     }
   }
 
@@ -176,12 +159,6 @@ export default function Login() {
         <div className="auth-status">
           <span className="status-dot" />
           All systems operational
-        </div>
-
-        <div className="auth-dev">
-          <button type="button" onClick={handleSeedDatabase} disabled={isSeeding}>
-            {isSeeding ? 'Seeding...' : 'Seed DB'}
-          </button>
         </div>
       </form>
     </AuthLayout>
