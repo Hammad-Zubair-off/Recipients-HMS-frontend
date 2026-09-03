@@ -88,15 +88,25 @@ export default function Signup() {
       })
     } catch (error) {
       console.error('Signup error:', error)
-      let errorMessage = 'Failed to create account. Please try again.'
 
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'An account with this email already exists.'
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password should be at least 6 characters long.'
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Please enter a valid email address.'
+      const messagesByCode = {
+        'auth/email-already-in-use': 'An account with this email already exists.',
+        'auth/weak-password': 'Password should be at least 6 characters long.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/operation-not-allowed': 'Email/Password sign-in is not enabled for this project. Enable it in Firebase Console → Authentication → Sign-in method.',
+        'auth/configuration-not-found': 'Firebase Authentication is not configured for this project. Open Firebase Console → Authentication → Get started.',
+        'auth/api-key-not-valid': 'Firebase API key is invalid. Check the VITE_FIREBASE_* values in your .env file.',
+        'auth/network-request-failed': 'Network error contacting Firebase. Check your connection and that the project ID is correct.',
+        'permission-denied': 'Account was created but saving the profile was blocked by Firestore security rules.',
+        'unavailable': 'Cloud Firestore is not reachable. Make sure a Firestore database has been created for this project.',
+        'failed-precondition': 'Cloud Firestore database does not exist yet. Create one in Firebase Console → Firestore Database.',
       }
+
+      const errorMessage =
+        messagesByCode[error?.code] ||
+        (error?.code || error?.message
+          ? `Failed to create account (${error.code || error.message}).`
+          : 'Failed to create account. Please try again.')
 
       setErrors(prev => ({ ...prev, general: errorMessage }))
     } finally {

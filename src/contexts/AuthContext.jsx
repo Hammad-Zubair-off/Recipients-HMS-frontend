@@ -58,17 +58,39 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true)
-      if (user) {
-        setCurrentUser(user)
-        const role = await fetchUserRole(user.uid)
-        if (role) {
-          setUserRole(normalizeRole(role))
+      // Failsafe: if the Firestore role lookup hangs (e.g. database not
+      // reachable), don't leave the whole app stuck on a blank screen.
+      const failsafe = setTimeout(() => setLoading(false), 5000)
+      try {
+        if (user) {
+          console.log('[AuthContext] Firebase auth state: signed in', {
+            uid: user.uid,
+            email: user.email,
+            emailVerified: user.emailVerified
+          })
+          setCurrentUser(user)
+          const role = await fetchUserRole(user.uid)
+          console.log('[AuthContext] role lookup completed', {
+            uid: user.uid,
+            role
+          })
+          if (role) {
+            setUserRole(normalizeRole(role))
+          }
+        } else {
+          setCurrentUser(null)
+          setUserRole(null)
         }
-      } else {
-        setCurrentUser(null)
-        setUserRole(null)
+      } catch (error) {
+        console.error('[AuthContext] auth state handling failed', {
+          code: error.code,
+          message: error.message,
+          error
+        })
+      } finally {
+        clearTimeout(failsafe)
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return unsubscribe
@@ -87,7 +109,12 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #60a5fa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   )
 }

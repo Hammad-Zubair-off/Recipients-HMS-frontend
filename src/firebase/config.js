@@ -1,35 +1,8 @@
-// import { initializeApp } from 'firebase/app'
-// import { getAuth, connectAuthEmulator } from 'firebase/auth'
-// import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
-
-// const firebaseConfig = {
-//   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-//   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-//   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-//   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-//   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-//   appId: import.meta.env.VITE_FIREBASE_APP_ID
-// }
-
-// // Initialize Firebase
-// const app = initializeApp(firebaseConfig)
-
-// // Initialize Firebase Authentication
-// export const auth = getAuth(app)
-
-// // Initialize Firestore
-// export const db = getFirestore(app)
-
-// // Connect to emulators when running locally
-// if (location.hostname === "localhost") {
-//   connectAuthEmulator(auth, "http://127.0.0.1:9099")
-//   connectFirestoreEmulator(db, "127.0.0.1", 8080)
-// }
 
 // export default app
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -44,6 +17,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Use auto-detected long polling instead of the WebChannel stream. This avoids
+// the Firestore SDK "INTERNAL ASSERTION FAILED: Unexpected state" watch-stream
+// crash that can occur when snapshot listeners are torn down (e.g. on sign-out).
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 
 export default app;

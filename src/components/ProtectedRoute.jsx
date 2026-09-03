@@ -1,8 +1,20 @@
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function ProtectedRoute({ children, requiredRole = null }) {
   const { currentUser, userRole, loading } = useAuth()
+
+  // If the role never resolves (e.g. Firestore unreachable), don't hang
+  // on a spinner forever - give up after a grace period.
+  const [roleTimedOut, setRoleTimedOut] = useState(false)
+  useEffect(() => {
+    if (currentUser && requiredRole && !userRole) {
+      const t = setTimeout(() => setRoleTimedOut(true), 8000)
+      return () => clearTimeout(t)
+    }
+    setRoleTimedOut(false)
+  }, [currentUser, requiredRole, userRole])
 
   if (loading) {
     return (
@@ -16,6 +28,12 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
   }
 
   if (!currentUser) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Role could not be loaded within the grace period - send to login
+  // so the user isn't stuck. (Usually means Firestore isn't reachable.)
+  if (requiredRole && !userRole && roleTimedOut) {
     return <Navigate to="/login" replace />
   }
 

@@ -83,11 +83,11 @@ export default function Login() {
   const handleSeedDatabase = async () => {
     if (window.confirm('This will add example data to your database (Medicines, Appointments, Invoices). Continue?')) {
       setIsSeeding(true)
-      const result = await seedDatabase()
+      const result = await seedDatabase(currentUser)
       setIsSeeding(false)
 
       if (result.success) {
-        toast.success(`Successfully added ${result.count} records!`)
+        toast.success(`${result.patientsCreated} patients added; ${result.appointmentsUpdated} appointments updated.`)
       } else {
         toast.error('Failed to seed database. Check console for details.')
       }

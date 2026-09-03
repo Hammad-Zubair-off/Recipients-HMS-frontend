@@ -31,11 +31,32 @@ export default function PatientList() {
 
   // Fetch patients (normalize dates for display; sort client-side if createdAt is mixed string/Timestamp)
   useEffect(() => {
+    console.log('[PatientList] patient loading started', {
+      currentUserExists: Boolean(currentUser),
+      currentUserUid: currentUser?.uid || null,
+      collection: 'patients',
+      orderBy: ['createdAt', 'desc']
+    })
+
+    if (!currentUser) {
+      console.log('[PatientList] patient loading skipped: no currentUser')
+      setLoading(false)
+      return undefined
+    }
+
     setLoading(true)
     const patientsRef = collection(db, 'patients')
     const q = query(patientsRef, orderBy('createdAt', 'desc'))
+    console.log('[PatientList] executing Firestore query', {
+      collection: 'patients',
+      orderBy: ['createdAt', 'desc'],
+      currentUserUid: currentUser.uid
+    })
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('[PatientList] patient query succeeded', {
+        returnedDocuments: snapshot.size
+      })
       const patientsData = snapshot.docs.map(docSnap => {
         const d = { id: docSnap.id, ...docSnap.data() }
         return {
@@ -48,13 +69,17 @@ export default function PatientList() {
       setFilteredPatients(patientsData)
       setLoading(false)
     }, (error) => {
-      console.error('Error fetching patients:', error)
+      console.error('[PatientList] patient query failed', {
+        code: error.code,
+        message: error.message,
+        error
+      })
       toast.error('Error loading patients')
       setLoading(false)
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [currentUser])
 
   // Filter patients
   useEffect(() => {
@@ -105,7 +130,7 @@ export default function PatientList() {
   }
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container patients-page">
       {/* Premium Navigation */}
       <header className="nav-bar">
         <div className="nav-bar-content">
@@ -134,7 +159,7 @@ export default function PatientList() {
       {/* Main Content */}
       <main className="page-container">
         {/* Page Header */}
-        <div className="page-header">
+        <div className="page-header patients-page-header">
           <div className="flex justify-between items-start">
             <div>
               <h1 className="page-title">All Patients</h1>
@@ -152,7 +177,7 @@ export default function PatientList() {
 
         {/* Statistics */}
         <div className="grid-stats mb-6">
-          <div className="stat-card">
+          <div className="stat-card patients-stat-card">
             <div className="stat-card-header">
               <div className="stat-card-icon stat-card-icon-primary">
                 <Users className="icon-lg" />
@@ -162,7 +187,7 @@ export default function PatientList() {
             <p className="stat-card-value">{patients.length}</p>
           </div>
           
-          <div className="stat-card">
+          <div className="stat-card patients-stat-card">
             <div className="stat-card-header">
               <div className="stat-card-icon stat-card-icon-secondary">
                 <User className="icon-lg" />
@@ -172,7 +197,7 @@ export default function PatientList() {
             <p className="stat-card-value">{patients.filter(p => p.status === 'active').length}</p>
           </div>
           
-          <div className="stat-card">
+          <div className="stat-card patients-stat-card">
             <div className="stat-card-header">
               <div className="stat-card-icon stat-card-icon-success">
                 <Calendar className="icon-lg" />
@@ -191,7 +216,7 @@ export default function PatientList() {
         </div>
 
         {/* Search and Filters */}
-        <div className="card mb-6">
+        <div className="card patients-filter-card mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1/2">
               <input
@@ -217,7 +242,7 @@ export default function PatientList() {
         </div>
 
         {/* Patients Table */}
-        <div className="table-container">
+        <div className="table-container patients-table-container">
           <div className="table-wrapper">
             {loading ? (
               <div className="table-empty">

@@ -67,6 +67,16 @@ export default function Appointments() {
   })
 
   useEffect(() => {
+    console.log('[ReceptionistAppointments] data loading started', {
+      currentUserExists: Boolean(currentUser),
+      currentUserUid: currentUser?.uid || null
+    })
+
+    if (!currentUser) {
+      console.log('[ReceptionistAppointments] data loading skipped: no currentUser')
+      return undefined
+    }
+
     const appointmentsRef = collection(db, 'appointments')
     const q = query(appointmentsRef, orderBy('createdAt', 'desc'))
     
@@ -96,8 +106,16 @@ export default function Appointments() {
     // Fetch patients
     const patientsRef = collection(db, 'patients')
     const patientsQuery = query(patientsRef, orderBy('createdAt', 'desc'))
+    console.log('[ReceptionistAppointments] executing patient query', {
+      collection: 'patients',
+      orderBy: ['createdAt', 'desc'],
+      currentUserUid: currentUser.uid
+    })
     
     const unsubscribePatients = onSnapshot(patientsQuery, (snapshot) => {
+      console.log('[ReceptionistAppointments] patient query succeeded', {
+        returnedDocuments: snapshot.size
+      })
       const patientsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -105,7 +123,11 @@ export default function Appointments() {
       setPatients(patientsData)
       setFilteredPatients(patientsData)
     }, (error) => {
-      console.error('Error fetching patients:', error)
+      console.error('[ReceptionistAppointments] patient query failed', {
+        code: error.code,
+        message: error.message,
+        error
+      })
     })
 
     return () => {
@@ -113,7 +135,7 @@ export default function Appointments() {
       unsubscribeDoctors()
       unsubscribePatients()
     }
-  }, [])
+  }, [currentUser])
 
   // Filter patients based on search
   useEffect(() => {

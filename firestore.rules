@@ -1,8 +1,83 @@
 rules_version = '2';
+
+// -----------------------------------------------------------------------------
+// Recipients-HMS Firestore security rules
+//
+// Role model (matches the application, do NOT invent a new one):
+//   - Staff profile + role are stored at  staffData/{uid}
+//   - staffData/{uid}.role is either 'doctor' or 'receptionist'
+//   - There are NO Firebase Auth custom claims; never rely on request.auth.token.role
+//
+// Access model:
+//   - Unauthenticated users: fully blocked.
+//   - Any signed-in staff member: can read the operational data the dashboards
+//     need (patients, appointments, prescriptions, medicines, invoices, payments)
+//     and can read staffData (needed to resolve their own role and to list doctors).
+//   - Patients collection: only 'receptionist' can create / update / delete.
+//   - staffData/{uid}: a user may only create/modify their OWN record
+//     (this is exactly what the signup flow does).
+// -----------------------------------------------------------------------------
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // staffData/{uid} holds the role. exists() guards the get() below.
+    function isStaff() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/staffData/$(request.auth.uid));
+    }
+
+    function role() {
+      return get(/databases/$(database)/documents/staffData/$(request.auth.uid)).data.role;
+    }
+
+    function hasRole(r) {
+      return isStaff() && role() == r;
+    }
+
+    // --- Staff profiles / roles ---------------------------------------------
+    match /staffData/{uid} {
+      // Signed-in users can read staff docs: resolve own role, and
+      // receptionist screens list doctors (where role == 'doctor').
+      allow read: if isSignedIn();
+      // Users may only create / update their OWN staff record. The signup
+      // flow performs setDoc(doc(db,'staffData', user.uid), {...}) right after
+      // account creation, when request.auth.uid === uid.
+      allow create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // --- Patients ---------------------------------------------------------
+    match /patients/{patientId} {
+      // Patient list, patient detail/edit, appointment screens, invoice and
+      // prescription screens all read patient data - any signed-in staff.
+      allow read: if isStaff();
+      // Registering / editing / removing patients is a receptionist action
+      // (CreatePatient + PatientList live under the receptionist role and
+      // stamp createdBy / updatedBy = currentUser.uid).
+      allow create, update, delete: if hasRole('receptionist');
+    }
+
+    // --- Appointments ---------------------------------------------------
+    match /appointments/{appointmentId} {
+      // Doctor dashboard queries where('doctorId','==', uid); receptionist
+      // dashboard lists/creates/updates. All require signed-in staff.
+      allow read, create, update, delete: if isStaff();
+    }
+
+    // --- Clinical + billing collections: signed-in staff ---------------
+    match /prescriptions/{id} { allow read, write: if isStaff(); }
+    match /medicines/{id}     { allow read, write: if isStaff(); }
+    match /invoices/{id}      { allow read, write: if isStaff(); }
+    match /payments/{id}      { allow read, write: if isStaff(); }
+
+    // --- Default deny -------------------------------------------------------
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

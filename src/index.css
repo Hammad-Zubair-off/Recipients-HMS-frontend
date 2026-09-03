@@ -258,6 +258,137 @@ body {
   padding-bottom: 2rem;
 }
 
+/* Patient management surface */
+.patients-page .page-container {
+  padding-top: 2.5rem;
+}
+
+.patients-page-header {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.patients-page-header .page-title {
+  letter-spacing: -0.02em;
+  color: #172033;
+}
+
+.patients-page-header .page-description {
+  color: #64748b;
+}
+
+.patients-stat-card {
+  min-height: 11rem;
+  border: 1px solid rgba(203, 213, 225, 0.75);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.patients-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
+}
+
+.patients-stat-card .stat-card-title {
+  margin-top: 1.25rem;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.patients-stat-card .stat-card-value {
+  margin-top: 0.25rem;
+  color: #172033;
+  font-size: 2.15rem;
+  line-height: 1;
+}
+
+.patients-filter-card {
+  padding: 1.15rem;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+}
+
+.patients-filter-card .form-input {
+  min-height: 3rem;
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+}
+
+.patients-filter-card .form-input:focus {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.13);
+}
+
+.patients-table-container {
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.85);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.patients-table-container .table-wrapper {
+  overflow-x: auto;
+}
+
+.patients-table-container .table {
+  min-width: 940px;
+}
+
+.patients-table-container .table-header-cell {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.patients-table-container .table-row {
+  transition: background-color 140ms ease;
+}
+
+.patients-table-container .table-row:hover {
+  background: #f8fafc;
+}
+
+.patients-table-container .table-cell {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.patients-table-container .table-cell-header .font-semibold {
+  color: #172033;
+}
+
+@media (max-width: 768px) {
+  .patients-page .page-container {
+    padding: 1.25rem 1rem;
+  }
+
+  .patients-page-header .flex {
+    gap: 1rem;
+    flex-direction: column;
+  }
+
+  .patients-page-header .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .patients-filter-card {
+    padding: 0.85rem;
+  }
+}
+
 .section-container {
   display: flex;
   flex-direction: column;

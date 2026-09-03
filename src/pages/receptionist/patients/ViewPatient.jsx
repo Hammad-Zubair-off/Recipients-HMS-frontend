@@ -19,7 +19,7 @@ import {
   Heart,
   Activity
 } from 'lucide-react'
-import { doc, getDoc, collection, query, where, onSnapshot, orderBy } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { getDisplayDate, getDisplayTime } from '../../../utils/firestoreUtils'
 
@@ -69,8 +69,7 @@ export default function ViewPatient() {
     const appointmentsRef = collection(db, 'appointments')
     const q = query(
       appointmentsRef,
-      where('patientPhone', '==', patient.phone),
-      orderBy('createdAt', 'desc')
+      where('patientPhone', '==', patient.phone)
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -93,8 +92,7 @@ export default function ViewPatient() {
     const prescriptionsRef = collection(db, 'prescriptions')
     const q = query(
       prescriptionsRef,
-      where('patientPhone', '==', patient.phone),
-      orderBy('createdAt', 'desc')
+      where('patientPhone', '==', patient.phone)
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -117,8 +115,7 @@ export default function ViewPatient() {
     const invoicesRef = collection(db, 'invoices')
     const q = query(
       invoicesRef,
-      where('patientPhone', '==', patient.phone),
-      orderBy('createdAt', 'desc')
+      where('patientPhone', '==', patient.phone)
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
