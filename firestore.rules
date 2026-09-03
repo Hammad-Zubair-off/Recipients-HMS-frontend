@@ -64,9 +64,13 @@ service cloud.firestore {
 
     // --- Appointments ---------------------------------------------------
     match /appointments/{appointmentId} {
-      // Doctor dashboard queries where('doctorId','==', uid); receptionist
-      // dashboard lists/creates/updates. All require signed-in staff.
-      allow read, create, update, delete: if isStaff();
+      // Read is public: the waiting-room queue display (/queue, TokenDisplay)
+      // runs unauthenticated on a lobby screen and needs to read appointment
+      // status / token numbers. It exposes patient name + token only, which is
+      // the same information shown on the physical queue board.
+      allow read: if true;
+      // All writes still require a signed-in staff member.
+      allow create, update, delete: if isStaff();
     }
 
     // --- Clinical + billing collections: signed-in staff ---------------
@@ -74,6 +78,13 @@ service cloud.firestore {
     match /medicines/{id}     { allow read, write: if isStaff(); }
     match /invoices/{id}      { allow read, write: if isStaff(); }
     match /payments/{id}      { allow read, write: if isStaff(); }
+
+    // --- Per-day token counter (concurrency-safe token generation) -----
+    // One document per calendar day: tokenCounters/{YYYY-MM-DD}. Written only
+    // inside the receptionist token-generation transaction.
+    match /tokenCounters/{dateKey} {
+      allow read, write: if isStaff();
+    }
 
     // --- Default deny -------------------------------------------------------
     match /{document=**} {

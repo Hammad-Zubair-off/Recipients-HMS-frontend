@@ -21,13 +21,14 @@ import {
   User,
   UserPlus
 } from 'lucide-react'
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where, getDocs } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 
 export default function Appointments() {
   const { currentUser } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [doctors, setDoctors] = useState([])
+  const [doctorsError, setDoctorsError] = useState(null)
   const [patients, setPatients] = useState([])
   const [filteredPatients, setFilteredPatients] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -99,8 +100,17 @@ export default function Appointments() {
         ...doc.data()
       }))
       setDoctors(doctorsData)
+      setDoctorsError(null)
     }, (error) => {
       console.error('Error fetching doctors:', error)
+      const reason =
+        error.code === 'permission-denied'
+          ? 'You do not have permission to view the doctor list.'
+          : error.code === 'unavailable'
+            ? 'Cannot reach the database. Check your connection.'
+            : (error.message || 'Failed to load doctors.')
+      setDoctorsError(reason)
+      toast.error(`Could not load doctors: ${reason}`)
     })
 
     // Fetch patients
@@ -726,7 +736,11 @@ export default function Appointments() {
                       required
                     >
                       <option value="">
-                        {doctors.length === 0 ? 'No doctors available' : 'Select a doctor'}
+                        {doctors.length > 0
+                          ? 'Select a doctor'
+                          : doctorsError
+                            ? 'Could not load doctors'
+                            : 'No doctors available'}
                       </option>
                       {doctors.map((doctor) => (
                         <option key={doctor.id} value={doctor.id}>
@@ -737,7 +751,9 @@ export default function Appointments() {
                     </select>
                     {doctors.length === 0 && (
                       <p className="form-error text-xs mt-1 ">
-                        No doctors found. Please add doctors to the staffData collection with role: 'doctor'
+                        {doctorsError
+                          ? doctorsError
+                          : "No doctors found. Please add doctors to the staffData collection with role: 'doctor'"}
                       </p>
                     )}
                   </div>

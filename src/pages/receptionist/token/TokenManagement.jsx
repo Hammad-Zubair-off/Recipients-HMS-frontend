@@ -19,7 +19,7 @@ import {
   Search,
   Filter
 } from 'lucide-react'
-import { collection, onSnapshot, query, updateDoc, doc } from 'firebase/firestore'
+import { collection, onSnapshot, query, updateDoc, doc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../firebase/config'
 import { getDateString, getDateObject, getDisplayDate, getDisplayTime } from '../../../utils/firestoreUtils'
 
@@ -30,7 +30,6 @@ export default function TokenManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(false)
-  const [nextTokenNumber, setNextTokenNumber] = useState(1)
 
   useEffect(() => {
     if (!selectedDate) return
@@ -65,11 +64,6 @@ export default function TokenManagement() {
 
       setAppointments(sortedAppointments)
       setFilteredAppointments(sortedAppointments)
-
-      const maxToken = sortedAppointments.reduce((max, apt) => {
-        return apt.tokenNumber != null && apt.tokenNumber > max ? apt.tokenNumber : max
-      }, 0)
-      setNextTokenNumber(maxToken + 1)
       setLoading(false)
     }, (error) => {
       console.error('Error fetching appointments:', error)
@@ -99,21 +93,75 @@ export default function TokenManagement() {
     setFilteredAppointments(filtered)
   }, [appointments, searchTerm, filterStatus])
 
-  const generateToken = async (appointmentId) => {
+  // Concurrency-safe token assignment.
+  //
+  // Tokens are a per-day queue: the number restarts each calendar day. The next
+  // number is kept in an atomic counter document `tokenCounters/{YYYY-MM-DD}`
+  // and both the counter and the appointment are written inside a single
+  // Firestore transaction. runTransaction retries automatically if either
+  // document changed since it was read, so two receptionists (or two rapid
+  // clicks) can never be handed the same number, and a page reload / re-login
+  // never resets the sequence (it lives in Firestore, not React state).
+  const generateToken = async (appointment) => {
+    const appointmentId = appointment.id
+    const dateKey =
+      getDateString(appointment.date ?? appointment.appointmentDate) ||
+      appointment.appointmentDate ||
+      selectedDate
+
+    if (!dateKey) {
+      toast.error('Cannot generate token: this appointment has no date.')
+      return
+    }
+
+    // Floor = the highest token already present in this day's loaded queue.
+    // Guards the first run for a day whose appointments were tokenised before
+    // this counter existed, so an existing number is never reused.
+    const existingFloor = appointments.reduce(
+      (max, apt) => (apt.tokenNumber != null && apt.tokenNumber > max ? apt.tokenNumber : max),
+      0
+    )
+
     try {
+      const counterRef = doc(db, 'tokenCounters', dateKey)
       const appointmentRef = doc(db, 'appointments', appointmentId)
 
-      await updateDoc(appointmentRef, {
-        tokenNumber: nextTokenNumber,
-        tokenGeneratedAt: new Date().toISOString(),
-        status: 'token_generated'
+      const result = await runTransaction(db, async (transaction) => {
+        const apptSnap = await transaction.get(appointmentRef)
+        if (!apptSnap.exists()) {
+          throw new Error('Appointment no longer exists')
+        }
+        // Never overwrite a token that has already been assigned.
+        const current = apptSnap.data().tokenNumber
+        if (current != null) {
+          return { token: current, alreadyHad: true }
+        }
+
+        const counterSnap = await transaction.get(counterRef)
+        const counterValue = counterSnap.exists() ? (counterSnap.data().current || 0) : 0
+        const next = Math.max(counterValue, existingFloor) + 1
+
+        transaction.set(
+          counterRef,
+          { current: next, dateKey, updatedAt: serverTimestamp() },
+          { merge: true }
+        )
+        transaction.update(appointmentRef, {
+          tokenNumber: next,
+          tokenGeneratedAt: new Date().toISOString(),
+          status: 'token_generated'
+        })
+        return { token: next, alreadyHad: false }
       })
 
-      toast.success(`Token ${nextTokenNumber} generated successfully!`)
-      setNextTokenNumber(prev => prev + 1)
+      if (result.alreadyHad) {
+        toast(`This appointment already has token ${result.token}.`)
+      } else {
+        toast.success(`Token ${result.token} generated successfully!`)
+      }
     } catch (error) {
       console.error('Error generating token:', error)
-      toast.error('Error generating token')
+      toast.error(`Error generating token: ${error.message || 'please try again'}`)
     }
   }
 
@@ -434,7 +482,7 @@ export default function TokenManagement() {
                             <div className="flex items-center gap-2">
                               {!appointment.tokenNumber && (
                                 <button
-                                  onClick={() => generateToken(appointment.id)}
+                                  onClick={() => generateToken(appointment)}
                                   className="btn-primary rounded-lg border btn-sm"
                                   title="Generate Token"
                                 >

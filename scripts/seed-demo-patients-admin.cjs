@@ -28,42 +28,16 @@
  *   (or set GOOGLE_APPLICATION_CREDENTIALS)
  */
 
-const fs = require('fs')
-const path = require('path')
 const admin = require('firebase-admin')
+const { initAdminApp } = require('./_adminApp.cjs')
 const { buildPatientDoc, DEMO_PATIENTS, DEMO_BATCH } = require('./seed-demo-patients.cjs')
 
-function resolveKeyPath() {
-  const fromArg = process.argv[2]
-  const candidates = [
-    fromArg,
-    process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    path.join(__dirname, 'serviceAccountKey.json'),
-    path.join(__dirname, '..', 'serviceAccountKey.json'),
-  ].filter(Boolean)
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c
-  }
-  return null
-}
-
 async function seedDemoPatientsAdmin() {
-  const keyPath = resolveKeyPath()
-  if (!keyPath) {
-    console.error('\nNo service-account key found.')
-    console.error('Download one from Firebase Console > Project settings > Service accounts')
-    console.error('> "Generate new private key", and save it as:')
-    console.error('   ' + path.join(__dirname, 'serviceAccountKey.json'))
-    console.error('Then re-run this script.\n')
-    process.exit(1)
-  }
-
-  const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'))
-  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) })
+  const info = initAdminApp()
   const db = admin.firestore()
 
-  console.log(`\nService account : ${serviceAccount.client_email}`)
-  console.log(`Firebase project : ${serviceAccount.project_id}`)
+  console.log(`\nAuth via          : ${info.how}`)
+  console.log(`Firebase project  : ${info.projectId}`)
   console.log(`Firestore database: (default)`)
   console.log(`Collection        : patients`)
   console.log(`Demo batch marker : demoData=true, demoBatch="${DEMO_BATCH}"\n`)

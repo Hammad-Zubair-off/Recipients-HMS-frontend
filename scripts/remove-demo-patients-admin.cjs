@@ -1,80 +1,77 @@
 /*
  * remove-demo-patients-admin.cjs
  * ----------------------------------------------------------------------------
- * Deletes ONLY the demo patients (patients where demoData === true), using the
- * Firebase Admin SDK (bypasses security rules). Real/application records that
- * do not carry the demoData marker are never read for deletion or touched.
+ * Deletes ONLY the demo patients this project's seed script added
+ * (patients where demoBatch === "usa-demo-v1"). Uses the Firebase Admin SDK
+ * via the same credential as the seed scripts (_adminApp.cjs).
  *
- * Needs the same scripts/serviceAccountKey.json as seed-demo-patients-admin.cjs.
+ * It will NOT touch:
+ *   - real patient records (no demo marker)
+ *   - the earlier "Seed DB" batch (demoBatch "usa-demo-patients-v2")
+ *   - the demo doctors (those are in staffData; see remove-demo-doctors-admin.cjs)
  *
  * Dry run (default - lists, deletes nothing):
  *     node scripts/remove-demo-patients-admin.cjs
  * Actually delete:
  *     node scripts/remove-demo-patients-admin.cjs --confirm
+ *
+ * To also clear the older Seed DB batch, add:  --batch usa-demo-patients-v2
+ * To clear every demoData==true patient, add:  --all-demo
  */
 
-const fs = require('fs')
-const path = require('path')
 const admin = require('firebase-admin')
-
-function resolveKeyPath() {
-  const candidates = [
-    process.argv.slice(2).find(a => a.endsWith('.json')),
-    process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    path.join(__dirname, 'serviceAccountKey.json'),
-    path.join(__dirname, '..', 'serviceAccountKey.json'),
-  ].filter(Boolean)
-  return candidates.find(c => fs.existsSync(c)) || null
-}
+const { initAdminApp } = require('./_adminApp.cjs')
 
 async function removeDemoPatientsAdmin() {
   const confirm = process.argv.includes('--confirm')
-  const keyPath = resolveKeyPath()
-  if (!keyPath) {
-    console.error('\nNo service-account key found (scripts/serviceAccountKey.json).')
-    console.error('See the header of seed-demo-patients-admin.cjs for how to get one.\n')
-    process.exit(1)
-  }
+  const allDemo = process.argv.includes('--all-demo')
+  const batchIdx = process.argv.indexOf('--batch')
+  const batch = batchIdx > -1 ? process.argv[batchIdx + 1] : 'usa-demo-v1'
 
-  const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'))
-  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) })
+  const info = initAdminApp()
   const db = admin.firestore()
 
-  console.log(`\nFirebase project : ${serviceAccount.project_id}`)
-  console.log(`Mode             : ${confirm ? 'DELETE' : 'DRY RUN (pass --confirm to delete)'}\n`)
+  console.log(`\nAuth via : ${info.how}`)
+  console.log(`Project  : ${info.projectId}`)
+  console.log(`Target   : ${allDemo ? 'ALL patients with demoData == true' : `patients with demoBatch == "${batch}"`}`)
+  console.log(`Mode     : ${confirm ? 'DELETE' : 'DRY RUN (pass --confirm to delete)'}\n`)
 
-  const snap = await db.collection('patients').where('demoData', '==', true).get()
+  const q = allDemo
+    ? db.collection('patients').where('demoData', '==', true)
+    : db.collection('patients').where('demoBatch', '==', batch)
+  const snap = await q.get()
+
   if (snap.empty) {
-    console.log('No demo patients (demoData === true) found. Nothing to do.')
+    console.log('Nothing matches. Nothing to do.')
     process.exit(0)
   }
 
-  console.log(`Found ${snap.size} demo patient(s):`)
+  console.log(`Found ${snap.size} patient(s):`)
   const ids = []
   snap.forEach(d => {
     const p = d.data()
     ids.push(d.id)
-    console.log(`  - ${p.patientId || d.id}  ${p.fullName}  <${p.email}>  (doc ${d.id})`)
+    console.log(`  - ${p.patientId || d.id}  ${p.fullName}  <${p.email}>  batch=${p.demoBatch || '-'}`)
   })
 
   if (!confirm) {
-    console.log('\nDry run only - nothing deleted. Re-run with --confirm to delete these.\n')
+    console.log('\nDry run only - nothing deleted. Re-run with --confirm.\n')
     process.exit(0)
   }
 
-  const batch = db.batch()
-  ids.forEach(id => batch.delete(db.collection('patients').doc(id)))
-  await batch.commit()
+  const del = db.batch()
+  ids.forEach(id => del.delete(db.collection('patients').doc(id)))
+  await del.commit()
 
   console.log(`\n----------------------------------------------------------------`)
-  console.log(`Removed ${ids.length} demo patient(s). Real records untouched.`)
+  console.log(`Removed ${ids.length} patient(s). Real records + other batches untouched.`)
   console.log(`----------------------------------------------------------------\n`)
   process.exit(0)
 }
 
 if (require.main === module) {
   removeDemoPatientsAdmin().catch(err => {
-    console.error('\nRemoval (admin) failed:', err)
+    console.error('\nRemoval failed:', err)
     process.exit(1)
   })
 }

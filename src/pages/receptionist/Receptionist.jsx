@@ -3,11 +3,9 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import LogoutButton from '../../components/LogoutButton'
 import EmailVerificationStatus from '../../components/EmailVerificationStatus'
-import { Bell, UserPlus, CalendarCheck, Users, Calendar, FileText, FileDown, Hash, DollarSign, UserCircle } from 'lucide-react'
+import { Bell, CalendarCheck, Calendar, FileText, FileDown, Hash, DollarSign, UserCircle } from 'lucide-react'
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { seedDatabase } from '../../utils/seedData'
-import toast from 'react-hot-toast'
 
 export default function Receptionist() {
   const { currentUser, userRole } = useAuth()
@@ -15,20 +13,6 @@ export default function Receptionist() {
   const [todayAppointments, setTodayAppointments] = useState(0)
   const [todayPrescriptions, setTodayPrescriptions] = useState(0)
   const [totalAppointments, setTotalAppointments] = useState(0)
-  const [isSeeding, setIsSeeding] = useState(false)
-
-  const handleSeedDatabase = async () => {
-    if (!window.confirm('Add 30 fictional demo patients and the existing sample data?')) return
-
-    setIsSeeding(true)
-    const result = await seedDatabase(currentUser)
-    setIsSeeding(false)
-    if (result.success) {
-      toast.success(`${result.patientsCreated} patients added; ${result.appointmentsUpdated} appointments updated.`)
-    } else {
-      toast.error(result.error?.message || 'Failed to seed database')
-    }
-  }
 
   // Fetch real appointment data
   useEffect(() => {
@@ -111,9 +95,6 @@ export default function Receptionist() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={handleSeedDatabase} disabled={isSeeding} className="btn-outline rounded-lg btn-md">
-              {isSeeding ? 'Seeding...' : 'Seed DB'}
-            </button>
             <LogoutButton />
           </div>
         </div>
