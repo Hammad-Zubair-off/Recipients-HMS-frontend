@@ -110,9 +110,12 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={value}>
       {loading ? (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-          <div style={{ width: 40, height: 40, border: '4px solid #60a5fa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+        <div className="auth-loading-screen" role="status" aria-live="polite">
+          <div className="auth-loading-mark" aria-hidden="true"><span /><span /></div>
+          <p className="auth-loading-kicker">FIELDSTONE CLINIC</p>
+          <p className="auth-loading-title">Preparing your secure workspace</p>
+          <div className="auth-loading-track" aria-hidden="true"><span /></div>
+          <p className="auth-loading-note">Connecting care teams and patient records</p>
         </div>
       ) : children}
     </AuthContext.Provider>

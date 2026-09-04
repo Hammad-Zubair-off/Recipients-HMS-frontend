@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 
 /**
  * Bordered, rounded text field with a leading icon, label, and an optional
@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react'
  * Props:
  *   id, name, type, value, onChange, autoComplete, inputMode, placeholder
  *   label       string
+ *   labelExtra  React node — rendered right-aligned on the label row (e.g. "Forgot password?")
  *   icon        React element (lucide icon)
  *   required    bool
  *   error       string
@@ -23,6 +24,7 @@ export default function AuthField({
   value,
   onChange,
   label,
+  labelExtra,
   icon,
   required = false,
   error,
@@ -39,13 +41,16 @@ export default function AuthField({
   return (
     <div className="auth-field">
       {label && (
-        <label className="auth-field__label" htmlFor={inputId}>
-          {label}
-          {required && <span className="auth-field__req">*</span>}
-        </label>
+        <div className="auth-field-row">
+          <label className="auth-field__label" htmlFor={inputId}>
+            {label}
+            {required && <span className="auth-field__req">*</span>}
+          </label>
+          {labelExtra}
+        </div>
       )}
 
-      <div className="auth-field__box">
+      <div className={`auth-field__box${error ? ' auth-field__box--error' : ''}`}>
         {icon && <span className="auth-field__ico" aria-hidden="true">{icon}</span>}
         <input
           id={inputId}
@@ -58,6 +63,7 @@ export default function AuthField({
           placeholder={placeholder}
           required={required}
           aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? `${inputId}-error` : helper ? `${inputId}-helper` : undefined}
         />
         {showToggle && (
           <button
@@ -66,15 +72,18 @@ export default function AuthField({
             onClick={onToggle}
             aria-label={toggled ? 'Hide password' : 'Show password'}
           >
-            {toggled ? <EyeOff /> : <Eye />}
+            {toggled ? <EyeOff strokeWidth={1.8} /> : <Eye strokeWidth={1.8} />}
           </button>
         )}
       </div>
 
       {error ? (
-        <p className="auth-field__error">{error}</p>
+        <p className="auth-field__error" id={`${inputId}-error`}>
+          <AlertCircle strokeWidth={2} aria-hidden="true" />
+          {error}
+        </p>
       ) : helper ? (
-        <p className="auth-field__helper">{helper}</p>
+        <p className="auth-field__helper" id={`${inputId}-helper`}>{helper}</p>
       ) : null}
     </div>
   )
